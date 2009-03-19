@@ -18,9 +18,11 @@ module HoptoadNotifier
 
   IGNORE_USER_AGENT_DEFAULT = []
 
+  VERSION = "1.2"
+
   class << self
     attr_accessor :host, :port, :secure, :api_key, :http_open_timeout, :http_read_timeout,
-                  :proxy_host, :proxy_port, :proxy_user, :proxy_pass
+                  :proxy_host, :proxy_port, :proxy_user, :proxy_pass, :verbose, :output
 
     def backtrace_filters
       @backtrace_filters ||= []
@@ -90,6 +92,16 @@ module HoptoadNotifier
       @environment_filters ||= %w()
     end
 
+    def log(message)
+      return unless @verbose
+      logger.info message
+    end
+
+    # Checking for the logger in hopes we can get rid of the ugly syntax someday
+    def logger
+      defined?(Rails.logger) ? Rails.logger : RAILS_DEFAULT_LOGGER
+    end
+
     # Call this method to modify defaults in your initializers.
     #
     # HoptoadNotifier.configure do |config|
@@ -104,6 +116,7 @@ module HoptoadNotifier
       if defined?(ActionController::Base) && !ActionController::Base.include?(HoptoadNotifier::Catcher)
         ActionController::Base.send(:include, HoptoadNotifier::Catcher)
       end
+      log "Hoptoad Notifier #{VERSION} ready to catch errors"
     end
 
     def protocol #:nodoc:
