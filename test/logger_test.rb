@@ -4,10 +4,11 @@ class LoggerTest < ActiveSupport::TestCase
   context "verbose logging" do
     setup do
       HoptoadNotifier.stubs(:logger)
+      STDERR.stubs(:puts)
     end
 
     should "report that it is enabled" do
-      HoptoadNotifier.logger.expects(:info).with { |message| message =~ /Hoptoad Notifier (.*) ready/ }
+      HoptoadNotifier.logger.expects(:info).with { |message| message =~ /Notifier (.*) ready/ }
       HoptoadNotifier.configure do |config|
         config.verbose = true
       end

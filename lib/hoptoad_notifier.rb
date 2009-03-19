@@ -94,7 +94,9 @@ module HoptoadNotifier
 
     def log(message)
       return unless @verbose
+      message = "** [Hoptoad] #{message}"
       logger.info message
+      STDERR.puts message
     end
 
     # Checking for the logger in hopes we can get rid of the ugly syntax someday
@@ -116,7 +118,7 @@ module HoptoadNotifier
       if defined?(ActionController::Base) && !ActionController::Base.include?(HoptoadNotifier::Catcher)
         ActionController::Base.send(:include, HoptoadNotifier::Catcher)
       end
-      log "Hoptoad Notifier #{VERSION} ready to catch errors"
+      log "Notifier #{VERSION} ready to catch errors"
     end
 
     def protocol #:nodoc:
