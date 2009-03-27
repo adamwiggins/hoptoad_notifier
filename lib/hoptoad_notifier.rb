@@ -93,13 +93,21 @@ module HoptoadNotifier
       @environment_filters ||= %w()
     end
 
-    def verbose_log(message)
-      write_verbose_log(LOG_PREFIX + message) if @verbose
+    def report_ready
+      write_verbose_log("Notifier #{VERSION} ready to catch errors")
+    end
+
+    def report_environment_info
+      write_verbose_log("Environment Info: #{environment_info}")
+    end
+
+    def environment_info
+      "[Rails: #{::Rails::VERSION::STRING}] [Ruby: #{RUBY_VERSION}] [RailsEnv: #{RAILS_ENV}]"
     end
 
     def write_verbose_log(message)
-      logger.info message
-      STDERR.puts message
+      logger.info LOG_PREFIX + message
+      STDERR.puts LOG_PREFIX + message
     end
 
     # Checking for the logger in hopes we can get rid of the ugly syntax someday
@@ -121,7 +129,7 @@ module HoptoadNotifier
       if defined?(ActionController::Base) && !ActionController::Base.include?(HoptoadNotifier::Catcher)
         ActionController::Base.send(:include, HoptoadNotifier::Catcher)
       end
-      verbose_log "Notifier #{VERSION} ready to catch errors"
+      report_ready if @verbose
     end
 
     def protocol #:nodoc:
@@ -286,11 +294,7 @@ module HoptoadNotifier
 
     def log(level, message)
       logger.send level, LOG_PREFIX + message if logger
-      HoptoadNotifier.verbose_log "Environment Info: #{environment_info}"
-    end
-
-    def environment_info
-      "[Rails: #{::Rails::VERSION::STRING}] [Ruby: #{RUBY_VERSION}] [RailsEnv: #{RAILS_ENV}]"
+      HoptoadNotifier.report_environment_info if HoptoadNotifier.verbose
     end
 
     def send_to_hoptoad data #:nodoc:
@@ -320,7 +324,7 @@ module HoptoadNotifier
       if response == Net::HTTPSuccess
         log :info, "Success: #{response.class}"
       else
-        logger.error "Hoptoad Failure: #{response.class}\n#{response.body if response.respond_to? :body}" if logger
+        log :error, "Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
       end
     end
 
