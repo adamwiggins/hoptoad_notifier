@@ -321,7 +321,8 @@ module HoptoadNotifier
                    nil
                  end
 
-      if response == Net::HTTPSuccess
+      case response
+      when Net::HTTPSuccess then
         log :info, "Success: #{response.class}"
       else
         log :error, "Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
