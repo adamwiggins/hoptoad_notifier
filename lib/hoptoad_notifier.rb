@@ -19,6 +19,7 @@ module HoptoadNotifier
   IGNORE_USER_AGENT_DEFAULT = []
 
   VERSION = "1.2"
+  LOG_PREFIX = "** [Hoptoad] "
 
   class << self
     attr_accessor :host, :port, :secure, :api_key, :http_open_timeout, :http_read_timeout,
@@ -92,9 +93,11 @@ module HoptoadNotifier
       @environment_filters ||= %w()
     end
 
-    def log(message)
-      return unless @verbose
-      message = "** [Hoptoad] #{message}"
+    def verbose_log(message)
+      write_verbose_log(LOG_PREFIX + message) if @verbose
+    end
+
+    def write_verbose_log(message)
       logger.info message
       STDERR.puts message
     end
@@ -118,7 +121,7 @@ module HoptoadNotifier
       if defined?(ActionController::Base) && !ActionController::Base.include?(HoptoadNotifier::Catcher)
         ActionController::Base.send(:include, HoptoadNotifier::Catcher)
       end
-      log "Notifier #{VERSION} ready to catch errors"
+      verbose_log "Notifier #{VERSION} ready to catch errors"
     end
 
     def protocol #:nodoc:
@@ -281,6 +284,15 @@ module HoptoadNotifier
       clean_non_serializable_data(notice)
     end
 
+    def log(level, message)
+      logger.send level, LOG_PREFIX + message if logger
+      HoptoadNotifier.verbose_log "Environment Info: #{environment_info}"
+    end
+
+    def environment_info
+      "[Rails: #{::Rails::VERSION::STRING}] [Ruby: #{RUBY_VERSION}] [RailsEnv: #{RAILS_ENV}]"
+    end
+
     def send_to_hoptoad data #:nodoc:
       headers = {
         'Content-type' => 'application/x-yaml',
@@ -288,15 +300,14 @@ module HoptoadNotifier
       }
 
       url = HoptoadNotifier.url
-
       http = Net::HTTP::Proxy(HoptoadNotifier.proxy_host,
                               HoptoadNotifier.proxy_port,
                               HoptoadNotifier.proxy_user,
                               HoptoadNotifier.proxy_pass).new(url.host, url.port)
 
       http.use_ssl = true
-        http.read_timeout = HoptoadNotifier.http_read_timeout
-        http.open_timeout = HoptoadNotifier.http_open_timeout
+      http.read_timeout = HoptoadNotifier.http_read_timeout
+      http.open_timeout = HoptoadNotifier.http_open_timeout
       http.use_ssl = !!HoptoadNotifier.secure 
 
       response = begin
@@ -306,9 +317,8 @@ module HoptoadNotifier
                    nil
                  end
 
-      case response
-      when Net::HTTPSuccess then
-        logger.info "Hoptoad Success: #{response.class}" if logger
+      if response == Net::HTTPSuccess
+        log :info, "Success: #{response.class}"
       else
         logger.error "Hoptoad Failure: #{response.class}\n#{response.body if response.respond_to? :body}" if logger
       end
