@@ -380,17 +380,15 @@ module HoptoadNotifier
       end
     end
 
-    def clean_non_serializable_data(data) #:nodoc:
-      case data
-      when Hash
-        data.inject({}) do |result, (key, value)|
-          result.update(key => clean_non_serializable_data(value))
-        end
-      when Fixnum, Array, String, Bignum
-        data
-      else
-        data.to_s
+    def clean_non_serializable_data(notice) #:nodoc:
+      notice.select{|k,v| serializable?(v) }.inject({}) do |h, pair|
+        h[pair.first] = pair.last.is_a?(Hash) ? clean_non_serializable_data(pair.last) : pair.last
+        h
       end
+    end
+
+    def serializable?(value) #:nodoc:
+      !(value.is_a?(Module) || value.kind_of?(IO))
     end
 
     def stringify_keys(hash) #:nodoc:
